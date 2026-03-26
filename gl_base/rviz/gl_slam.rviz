@@ -7,11 +7,10 @@ Panels:
         - /Global Options1
         - /Status1
         - /slam_toolbox1
-        - /slam_toolbox1/InteractiveMarkers1/Status1
         - /slam_toolbox1/Traversed Path1
         - /slam_toolbox1/Map1
       Splitter Ratio: 0.5058823823928833
-    Tree Height: 708
+    Tree Height: 365
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -29,7 +28,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
   - Class: slam_toolbox::SlamToolboxPlugin
     Name: SlamToolboxPlugin
 Visualization Manager:
@@ -74,8 +73,6 @@ Visualization Manager:
           Value: true
         odom:
           Value: true
-        scan_visualization:
-          Value: true
         wheel_left_link:
           Value: false
         wheel_right_link:
@@ -100,8 +97,6 @@ Visualization Manager:
                   {}
                 wheel_right_link:
                   {}
-          scan_visualization:
-            {}
       Update Interval: 0
       Value: true
     - Class: rviz_common/Group
@@ -157,6 +152,7 @@ Visualization Manager:
           Enabled: true
           Name: Traversed Path
           Namespaces:
+            slam_toolbox: true
             slam_toolbox_edges: true
           Topic:
             Depth: 5
@@ -269,26 +265,21 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/Orbit
-      Distance: 15.1781587600708
+      Angle: 0.03000001236796379
+      Class: rviz_default_plugins/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-      Focal Point:
-        X: 7.408540725708008
-        Y: -6.762057781219482
-        Z: 0.9795323014259338
-      Focal Shape Fixed Size: true
-      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8247963786125183
+      Scale: 46.92721176147461
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz)
-      Yaw: 4.875404357910156
+      Value: TopDownOrtho (rviz_default_plugins)
+      X: 1.8047707080841064
+      Y: 1.1099051237106323
     Saved: ~
 Window Geometry:
   Displays:
@@ -308,5 +299,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 948
-  X: -32
-  Y: -32
+  X: 755
+  Y: 21
