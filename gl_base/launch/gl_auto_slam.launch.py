@@ -40,11 +40,11 @@ def generate_launch_description():
     # * Spawn the slam_toolbox nodes
     start_async_slam_toolbox_node = LifecycleNode(
         parameters=[
-          slam_params_file,
-          {
+            slam_params_file,
+            {
             'use_lifecycle_manager': use_lifecycle_manager,
             'use_sim_time': use_sim_time
-          }
+            }
         ],
         package='slam_toolbox',
         executable='async_slam_toolbox_node',
@@ -55,8 +55,8 @@ def generate_launch_description():
 
     configure_event = EmitEvent(
         event=ChangeState(
-          lifecycle_node_matcher=matches_action(start_async_slam_toolbox_node),
-          transition_id=Transition.TRANSITION_CONFIGURE
+            lifecycle_node_matcher=matches_action(start_async_slam_toolbox_node),
+            transition_id=Transition.TRANSITION_CONFIGURE
         ),
         condition=IfCondition(AndSubstitution(autostart, NotSubstitution(use_lifecycle_manager)))
     )
@@ -98,6 +98,13 @@ def generate_launch_description():
         arguments=['-d', rviz_config_dir]
     )
 
+    # * Run Frontier Guidance Node
+
+    gl_frontier_det = Node(
+        package='gl_base',
+        executable='frontier_guidance',
+        name='frontier_node'
+    )
 
     ld = LaunchDescription()
 
@@ -107,5 +114,6 @@ def generate_launch_description():
     ld.add_action(activate_event)
     ld.add_action(gl_nav)
     ld.add_action(rviz_cmd)
+    ld.add_action(gl_frontier_det)
 
     return ld
