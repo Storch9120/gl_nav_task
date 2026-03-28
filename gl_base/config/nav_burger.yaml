@@ -114,9 +114,9 @@ controller_server:
       movement_time_allowance: 10.0
     goal_checker:
       stateful: true
-      plugin: "nav2_controller::SimpleGoalChecker"
+      plugin: "nav2_controller::PositionGoalChecker" #SimpleGoalChecker
       xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
+      # yaw_goal_tolerance: 0.25
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
       debug_trajectory_details: true

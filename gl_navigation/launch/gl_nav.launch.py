@@ -50,8 +50,8 @@ def generate_launch_description():
     # * Occ Grid Publisher to publish over mapserver
     occ_grid_pub = Node(
         package='gl_navigation',
-        executable='occupancy_grid_publisher',
-        name='occ_grid_pub',
+        executable='occupancy_grid_publisher.py',
+        name='occupancy_grid_publisher',
         output='screen'
     )
 
