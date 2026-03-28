@@ -31,9 +31,6 @@ struct Frontier {
     Point centroid;
 };
 
-struct Cluster {
-    std::vector<Frontier> frontiers;
-};
 
 class FrontierDetect : public rclcpp::Node {
     public:
