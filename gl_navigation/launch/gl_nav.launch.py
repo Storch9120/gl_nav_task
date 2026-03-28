@@ -77,5 +77,6 @@ def generate_launch_description():
     ld.add_action(gl_nav)
     ld.add_action(rviz_cmd)
     ld.add_action(gl_rrt_planner)
+    ld.add_action(occ_grid_pub)
 
     return ld

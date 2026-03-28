@@ -33,6 +33,10 @@ RRTPlanner::RRTPlanner() : Node("rrt_planner") {
             if (makePlan()) {
                 RCLCPP_INFO(this->get_logger(), "[RRTPlanner] Plan created successfully");
             }
+            else{
+                RCLCPP_ERROR(this->get_logger(), "[RRTPlanner] makePlan failed. Please give a new goal.");
+                new_goal_received.store(false);
+            }
         }
     });
 
@@ -279,6 +283,9 @@ bool RRTPlanner::findRoute(const Pose& start, const Pose& goal, Path& plan){
             }
         }
     }
+
+    RCLCPP_WARN(this->get_logger(), "[RRTPlanner::findRoute] Failed to find a path to the goal after max iterations");
+    return false; // failed to find a path
 }
 
 void RRTPlanner::sendGoal(const Path& plan){
