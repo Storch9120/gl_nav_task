@@ -31,7 +31,7 @@ RRTPlanner::RRTPlanner() : Node("rrt_planner") {
 
             RCLCPP_INFO(this->get_logger(), "[RRTPlanner] makePlan activated");
             if (makePlan()) {
-                RCLCPP_INFO(this->get_logger(), "[RRTPlanner] Plan executed successfully");
+                RCLCPP_INFO(this->get_logger(), "[RRTPlanner] Plan created successfully");
             }
         }
     });
@@ -67,11 +67,6 @@ bool RRTPlanner::makePlan(){
 
     sendGoal(plan);
 
-    while(rclcpp::ok() && !goal_reached.load()){
-        // * Wait for the result callback to set goal_reached to true
-        RCLCPP_INFO_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "[RRTPlanner::makePlan] Waiting for goal to be reached...");
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
     return true;
 }
 
@@ -83,13 +78,15 @@ void RRTPlanner::goalPoseCb(const PoseStamped::SharedPtr msg) {
         goal_pose = *msg;
     }
 
-    if (new_goal_received) {
-        RCLCPP_WARN(this->get_logger(), "[RRTPlanner::goalPoseCb] New goal received before previous goal was completed");
+    if (new_goal_received.load() && !goal_reached.load()) {
+        RCLCPP_WARN(this->get_logger(), "[RRTPlanner::goalPoseCb] New goal received before previous goal was completed. Sending cancel req");
         // Preempting the last goal by sending a cancel req;
         auto cancel_result_future = nav_client->async_cancel_all_goals();
-        if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), cancel_result_future) != rclcpp::FutureReturnCode::SUCCESS) {
-            RCLCPP_ERROR(this->get_logger(), "[RRTPlanner::goalPoseCb] Failed to cancel previous goal");
-        }
+
+
+        // if (rclcpp::spin_until_future_complete(this->get_node_base_interface(), cancel_result_future) != rclcpp::FutureReturnCode::SUCCESS) {
+        //     RCLCPP_ERROR(this->get_logger(), "[RRTPlanner::goalPoseCb] Failed to cancel previous goal");
+        // }
     }
     else{
         RCLCPP_INFO(this->get_logger(), "[RRTPlanner::goalPoseCb] Ready to plan");
@@ -323,14 +320,15 @@ void RRTPlanner::sendGoal(const Path& plan){
         switch (result.code) {
             case rclcpp_action::ResultCode::SUCCEEDED:
                 RCLCPP_INFO(this->get_logger(), "[RRTPlanner::resultCb] Goal Reached; Awaiting next path...");
-                new_goal_received.store(false);
                 goal_reached.store(true);
                 break;
             case rclcpp_action::ResultCode::ABORTED:
                 RCLCPP_ERROR(this->get_logger(), "[RRTPlanner::resultCb] Goal was aborted");
+                goal_reached.store(true);
                 return;
             case rclcpp_action::ResultCode::CANCELED:
                 RCLCPP_ERROR(this->get_logger(), "[RRTPlanner::resultCb] Goal was canceled");
+                goal_reached.store(true);
                 return;
             default:
                 RCLCPP_ERROR(this->get_logger(), "[RRTPlanner::resultCb] Unknown result code");
@@ -339,4 +337,5 @@ void RRTPlanner::sendGoal(const Path& plan){
     };
 
     nav_client->async_send_goal(goal_msg, send_goal_options);
+    new_goal_received.store(false);
 }
