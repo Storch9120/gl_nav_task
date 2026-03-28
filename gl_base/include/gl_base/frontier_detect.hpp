@@ -69,12 +69,11 @@ class FrontierDetect : public rclcpp::Node {
 
         // * Core functions
         std::vector<Frontier> detectFrontiers(const OccGrid::SharedPtr& map);
-        Point targetedFrontier(const std::vector<Frontier>& clusters);
+        Point targetedFrontier(const std::vector<Frontier>& clusters, const OccGrid::SharedPtr& map_ptr);
 
         // * Helper functions
         Point getRobotPose();
-        Cell getRobotCell();
-
+        Cell getCellFromPose(const Point& point);
         double distance2D(const Point& centroid);
 
         static std::vector<Cell> neighborsWADX(

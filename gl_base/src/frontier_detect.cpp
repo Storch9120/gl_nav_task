@@ -32,7 +32,14 @@ void FrontierDetect::tick() {
 
         std::vector<Frontier> frontiers = detectFrontiers(latest_map);
 
-        Point best = targetedFrontier(frontiers);
+        if (frontiers.empty()) {
+            RCLCPP_WARN(this->get_logger(), "[tick] No more frontiers detected; Shutting down...");
+            tick_timer_->cancel();
+            rclcpp::shutdown();
+            return;
+        }
+
+        Point best = targetedFrontier(frontiers, latest_map);
 
         sendGoal(best);
     }
@@ -61,15 +68,14 @@ Point FrontierDetect::getRobotPose(){
     return rp;
 }
 
-Cell FrontierDetect::getRobotCell(){
-
-    Point rp = getRobotPose();
+Cell FrontierDetect::getCellFromPose(const Point& point){
     Pose origin = getMap()->info.origin;
+    float res = getMap()->info.resolution;
 
-    int rp_x = (rp.x - origin.position.x)/map_res;
-    int rp_y = (rp.y - origin.position.y)/map_res;
+    int cell_x = (point.x - origin.position.x)/res;
+    int cell_y = (point.y - origin.position.y)/res;
 
-    return std::make_tuple(rp_x, rp_y);
+    return std::make_tuple(cell_x, cell_y);
 }
 
 std::vector<Cell> FrontierDetect::neighborsWADX(
@@ -196,7 +202,7 @@ bool FrontierDetect::checkCellFrontier(
 
 std::vector<Frontier> FrontierDetect::detectFrontiers(const OccGrid::SharedPtr& map_ptr){
     std::queue<Cell> queue;
-    Cell start = getRobotCell();
+    Cell start = getCellFromPose(getRobotPose());
 
     queue.push(start);
 
@@ -239,18 +245,58 @@ double FrontierDetect::distance2D(const Point& centroid){
     return std::hypot((rp.x - centroid.x), (rp.y - centroid.y));
 }
 
-Point FrontierDetect::targetedFrontier(const std::vector<Frontier>& clusters){
+Point FrontierDetect::targetedFrontier(const std::vector<Frontier>& clusters, const OccGrid::SharedPtr& map_ptr){
     Point selected;
     double min_dist_yet = INFINITY;
-    for (const auto& frontier : clusters){
+    std::vector<int> f_scores;
+    int f_index = 0;
+    double max_score_yet = -INFINITY;
+    // for (const auto& frontier : clusters){
+    for (int i = 0; i < clusters.size(); ++i){
+        const auto& frontier = clusters[i];
         // * calc distance to the centroid from the robot
         double new_min_dist = distance2D(frontier.centroid);
+        double score = frontier.size - 2 *new_min_dist; // tunable
 
-        if (new_min_dist < min_dist_yet){
-            min_dist_yet = new_min_dist;
-            // * might need to validate if cellData at the centroid is free or not
+        f_scores.push_back(score);
+
+        if (score > max_score_yet){
             selected = frontier.centroid;
-            // if it isnt then selected the nearest empty cell
+            min_dist_yet = new_min_dist;
+            // * validating if the centroid is free or not;
+            // * if not we take the nearest free cell
+            Cell centroid_cell = getCellFromPose(frontier.centroid);
+            if (fetchCellData(map_ptr, centroid_cell) != 0) {
+                RCLCPP_WARN(this->get_logger(), "[targetedFrontier] Frontier centroid is not free; Searching for nearest free cell");
+                std::queue<Cell> queue;
+                queue.push(centroid_cell);
+
+                std::map<Cell, bool> visited;
+                visited[centroid_cell] = true;
+
+                bool found_free_cell = false;
+
+                while (!queue.empty() && !found_free_cell) {
+                    auto current = queue.front();
+                    queue.pop();
+
+                    for (const auto& neighbor : neighborsWADX(map_ptr, current)) {
+                        if (visited.find(neighbor) == visited.end()) {
+                            visited[neighbor] = true;
+                            if (fetchCellData(map_ptr, neighbor) == 0) {
+                                selected = cellPosToMap(map_ptr, neighbor);
+                                found_free_cell = true;
+                                RCLCPP_INFO(this->get_logger(), "[targetedFrontier] Found nearest free cell to frontier centroid at %f, %f", selected.x, selected.y);
+                                break;
+                            }
+                            queue.push(neighbor);
+                        }
+                    }
+                }
+            }
+            f_index = i;
+            max_score_yet = score;
+            RCLCPP_INFO(this->get_logger(), "[targetedFrontier] Selected frontier with score: %f, mindist: %f", score, min_dist_yet);
         }
 
     }
@@ -259,7 +305,7 @@ Point FrontierDetect::targetedFrontier(const std::vector<Frontier>& clusters){
         RCLCPP_INFO(this->get_logger(), "[targetedFrontier] MinDist: %f Heading to pt %f %f", min_dist_yet, selected.x, selected.y);
     }
     else{
-        RCLCPP_ERROR(this->get_logger(), "[targetedFrontier] Error in deciding best frontier");
+        RCLCPP_ERROR(this->get_logger(), "[targetedFrontier] Error in deciding best frontier; Max score: %f", max_score_yet);
     }
     return selected;
 }
@@ -309,9 +355,11 @@ void FrontierDetect::sendGoal(const Point& target) {
                 break;
             case rclcpp_action::ResultCode::ABORTED:
                 RCLCPP_ERROR(this->get_logger(), "[FrontierDetect::resultCb] Goal was aborted");
+                ready_for_next_goal.store(true);
                 return;
             case rclcpp_action::ResultCode::CANCELED:
                 RCLCPP_ERROR(this->get_logger(), "[FrontierDetect::resultCb] Goal was canceled");
+                ready_for_next_goal.store(true);
                 return;
             default:
                 RCLCPP_ERROR(this->get_logger(), "[FrontierDetect::resultCb] Unknown result code");
