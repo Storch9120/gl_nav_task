@@ -16,10 +16,10 @@ class OccupancyGridPublisher(Node):
         pkg_gl_navigation = get_package_share_directory('gl_navigation')
         default_map_file = os.path.join(pkg_gl_navigation, 'config', 'small_room_map.png')
         self.declare_parameter('image_file', default_map_file)
-        self.declare_parameter('threshold', 200)  # <threshold = occupied
+        self.declare_parameter('threshold', 200)  # alpha<threshold = occupied
 
         self.map_file = self.get_parameter('image_file').value
-        self.map_params_file = self.map_file.replace('.png', '.yaml') # assuming no troll names like pnga.png
+        self.map_params_file = self.map_file.replace('.png', '.yaml') # ! assuming no troll names like pngABC.png
         with open(self.map_params_file, 'r') as f:
             params = yaml.safe_load(f)
             self.resolution = params['resolution']
@@ -27,7 +27,7 @@ class OccupancyGridPublisher(Node):
             self.origin_y = params['origin'][1]
 
         self.pub = self.create_publisher(OccupancyGrid, '/map', 10)
-        self.timer = self.create_timer(1.0, self.publish_map)
+        self.timer = self.create_timer(5.0, self.publish_map)
         self.grid_msg = self._build_grid()
         self.get_logger().info("[occupancy_grid_publisher] Ready")
 
