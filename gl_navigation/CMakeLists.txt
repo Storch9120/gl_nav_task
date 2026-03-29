@@ -18,7 +18,12 @@ find_package(rclcpp_action REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/Query.srv"
+  DEPENDENCIES std_msgs
+)
 
 #include dirs
 include_directories(
@@ -53,10 +58,16 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# ament_python_install_package(scripts)
+ament_python_install_package(scripts)
+
+
 
 install(
-  PROGRAMS scripts/occupancy_grid_publisher.py
+  PROGRAMS 
+    scripts/occupancy_grid_publisher.py
+    scripts/query_node.py
+    scripts/tagger_node.py
+
   DESTINATION lib/${PROJECT_NAME}
 )
 
