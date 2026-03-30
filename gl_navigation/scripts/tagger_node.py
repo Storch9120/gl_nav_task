@@ -120,6 +120,9 @@ class TaggerNode(Node):
         if pose is None:
             return
 
+        # visualize the labels on rviz
+        self.publishMarkerArray(self.semantic_map)
+
         if self.old_pose and (dist2d(pose, self.old_pose) < 0.5):
             # To tag only when robot has moved significantly
             return
@@ -140,8 +143,6 @@ class TaggerNode(Node):
         self.semantic_map[label] = {'pose': list(pose), 'embedding': mock_embedding(label)}
         self.get_logger().info(f'[TaggerNode] Tagged location ({pose[0]:.2f}, {pose[1]:.2f}) as "{label}"')
 
-        # visualize the labels on rviz
-        self.publishMarkerArray(self.semantic_map)
 
         with open(self.semantic_map_file, 'w') as f:
             json.dump(self.semantic_map, f, indent=4)
