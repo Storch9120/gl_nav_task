@@ -10,6 +10,7 @@ from geometry_msgs.msg import PoseStamped
 from nav2_msgs.action import NavigateToPose
 
 from gl_navigation.srv import Query
+from fake_VLM import mock_embedding, cosine_similarity
 
 
 class QueryNode(Node):
@@ -44,15 +45,23 @@ class QueryNode(Node):
         self.get_logger().info(f'[query_node::sendGoal] Goal sent')
 
     def processQuery(self, query):
-        # search the query label in the map then extract 
-        return self.semantic_map[query]["pose"] if query in self.semantic_map else None
+        # compare the embedded query against each label in the map then extract the pose
+        embedded_query = mock_embedding(query)
+        best_label, best_score, best_pose = None, -1.0, None
+        for label, data in self.semantic_map.items():
+            score = cosine_similarity(embedded_query, data['embedding'])
+            print(f'[query_node::processQuery] Comparing with label "{label}" got score {score:.4f}')
+            if score > best_score:
+                best_score = score
+                best_label = label
+                best_pose = data['pose']
+        return best_label, best_pose
 
 
     def queryCb(self, request, response):
-        print(request.query)
         if request.query is not None:
-            pose = self.processQuery(request.query)
-            print(pose)
+            label, pose = self.processQuery(request.query)
+            self.get_logger().info(f'[query_node::queryCb] Best match label "{label}" with pose {pose}')
             if not pose:
                 response.success = False
                 response.message = "Failed to find label"

@@ -7,22 +7,21 @@ import rclpy
 from rclpy.node import Node
 
 from sensor_msgs.msg import Image
-from std_msgs.msg import String
 from visualization_msgs.msg import Marker, MarkerArray
 
 import tf2_ros
 
-from fake_VLM import mock_label_image
+from fake_VLM import mock_label_image, mock_embedding
 
 
 def dist2d(p1, p2):
     return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
 
 COLOR_MAP = {
-    'red_shelf': (1.0, 0.0, 0.0),
-    'green_shelf': (0.0, 1.0, 0.0),
+    'red_bathroom': (1.0, 0.0, 0.0),
+    'green_cubicle': (0.0, 1.0, 0.0),
     'blue_shelf': (0.0, 0.0, 1.0),
-    'teal_shelf': (0.0, 1.0, 1.0),
+    'teal_meeting_room': (0.0, 1.0, 1.0),
 }
 
 class TaggerNode(Node):
@@ -126,19 +125,22 @@ class TaggerNode(Node):
             return
 
         self.get_logger().info(f'[TaggerNode] Checking for semantic label at ({pose[0]:.2f}, {pose[1]:.2f})')
-        # Get label from current view
-        # label = mock_label_image(self.getLatestView())
+
+        # * Get label from current view
+        # latest_view  self.getLatestView()
+        # * Send the view to the CLIP-based mock VLM to extract features & get a label
+        # label = mock_label_image(latest_view)
+
         label = mock_label_image(pose[0], pose[1])
         if label is None or label in self.semantic_map:
             return
 
         self.old_pose = pose
 
-        self.semantic_map[label] = {'pose': list(pose)}
+        self.semantic_map[label] = {'pose': list(pose), 'embedding': mock_embedding(label)}
         self.get_logger().info(f'[TaggerNode] Tagged location ({pose[0]:.2f}, {pose[1]:.2f}) as "{label}"')
 
-        print(self.semantic_map)
-        # visualization
+        # visualize the labels on rviz
         self.publishMarkerArray(self.semantic_map)
 
         with open(self.semantic_map_file, 'w') as f:
