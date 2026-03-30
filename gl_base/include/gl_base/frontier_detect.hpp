@@ -55,6 +55,7 @@ class FrontierDetect : public rclcpp::Node {
         float map_res;
         std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
         std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+        Point last_robot_pose;
 
         // * ROS Pub, Sub, Clients
         rclcpp::Subscription<OccGrid>::SharedPtr map_sub;
@@ -74,7 +75,7 @@ class FrontierDetect : public rclcpp::Node {
         // * Helper functions
         Point getRobotPose();
         Cell getCellFromPose(const Point& point);
-        double distance2D(const Point& centroid);
+        double distance2D(const Point& rp, const Point& centroid);
 
         static std::vector<Cell> neighborsWADX(
             const OccGrid::SharedPtr& mapdata,
@@ -95,7 +96,7 @@ class FrontierDetect : public rclcpp::Node {
             const Cell& grid_point
         );
 
-        static std::tuple<Frontier, std::vector<Cell>> growFrontier(
+        static Frontier growFrontier(
             const OccGrid::SharedPtr& mapdata,
             const Cell& initial_cell,
             std::map<Cell, bool>& is_frontier

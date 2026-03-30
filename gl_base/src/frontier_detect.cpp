@@ -15,6 +15,8 @@ FrontierDetect::FrontierDetect() : Node("frontier_detect") {
         std::chrono::milliseconds(1000), // 1 Hz
         std::bind(&FrontierDetect::tick, this)
     );
+
+    last_robot_pose = Point();
 }
 
 void FrontierDetect::tick() {
@@ -58,19 +60,25 @@ OccGrid::SharedPtr FrontierDetect::getMap() {
 }
 
 Point FrontierDetect::getRobotPose(){
-    auto tf = tf_buffer_->lookupTransform(
-        "map", "base_link", tf2::TimePointZero);
-
     Point rp;
-    rp.x = tf.transform.translation.x;
-    rp.y = tf.transform.translation.y;
+    try{
+        auto tf = tf_buffer_->lookupTransform(
+            "map", "base_link", tf2::TimePointZero);
+        rp.x = tf.transform.translation.x;
+        rp.y = tf.transform.translation.y;
+        last_robot_pose = rp;
+    }
+    catch (tf2::TransformException & ex) {
+        RCLCPP_ERROR(this->get_logger(), "[getRobotPose] Could not get robot pose: %s", ex.what());
+        rp = last_robot_pose;
+    }
 
     return rp;
 }
 
 Cell FrontierDetect::getCellFromPose(const Point& point){
     Pose origin = getMap()->info.origin;
-    float res = getMap()->info.resolution;
+    float res = map_res;
 
     int cell_x = (point.x - origin.position.x)/res;
     int cell_y = (point.y - origin.position.y)/res;
@@ -144,7 +152,7 @@ geometry_msgs::msg::Point FrontierDetect::cellPosToMap(
     return point;
 }
 
-std::tuple<Frontier, std::vector<Cell>> FrontierDetect::growFrontier(
+Frontier FrontierDetect::growFrontier(
     const OccGrid::SharedPtr& mapdata,
     const Cell& initial_cell,
     std::map<Cell, bool>& is_frontier
@@ -155,8 +163,6 @@ std::tuple<Frontier, std::vector<Cell>> FrontierDetect::growFrontier(
 
     std::queue<Cell> queue;
     queue.push(initial_cell);
-
-    std::vector<Cell> frontier_cells;
 
     while (!queue.empty()) {
         auto current = queue.front();
@@ -178,7 +184,7 @@ std::tuple<Frontier, std::vector<Cell>> FrontierDetect::growFrontier(
 
     geometry_msgs::msg::Point centroid = cellPosToMap(mapdata, {static_cast<int>(centroid_x), static_cast<int>(centroid_y)});
 
-    return {Frontier{size, centroid}, frontier_cells};
+    return Frontier{size, centroid};
 }
 
 bool FrontierDetect::checkCellFrontier(
@@ -226,11 +232,11 @@ std::vector<Frontier> FrontierDetect::detectFrontiers(const OccGrid::SharedPtr& 
             } else if (checkCellFrontier(map_ptr, neighbor, is_frontier)){
                 is_frontier[neighbor] = true;
 
-                auto [new_frontier, new_frontier_cells] = growFrontier(
+                auto new_frontier = growFrontier(
                     map_ptr, neighbor, is_frontier
                 );
                 // tunable
-                if (new_frontier.size >= 10){ 
+                if (new_frontier.size >= 10){
                     frontiers.push_back(new_frontier);
                 }
             }
@@ -240,8 +246,7 @@ std::vector<Frontier> FrontierDetect::detectFrontiers(const OccGrid::SharedPtr& 
     return frontiers;
 }
 
-double FrontierDetect::distance2D(const Point& centroid){
-    Point rp = getRobotPose();
+double FrontierDetect::distance2D(const Point& rp, const Point& centroid){
     return std::hypot((rp.x - centroid.x), (rp.y - centroid.y));
 }
 
@@ -249,14 +254,12 @@ Point FrontierDetect::targetedFrontier(const std::vector<Frontier>& clusters, co
     Point selected;
     double min_dist_yet = INFINITY;
     std::vector<int> f_scores;
-    int f_index = 0;
     double max_score_yet = -INFINITY;
-    // for (const auto& frontier : clusters){
-    for (int i = 0; i < clusters.size(); ++i){
-        const auto& frontier = clusters[i];
+    Point rp = getRobotPose();
+    for (const auto& frontier : clusters){
         // * calc distance to the centroid from the robot
-        double new_min_dist = distance2D(frontier.centroid);
-        double score = frontier.size - 2 *new_min_dist; // tunable
+        double new_min_dist = distance2D(rp, frontier.centroid);
+        double score = frontier.size - 2 *new_min_dist; // tunable; need to normalise this properly
 
         f_scores.push_back(score);
 
@@ -294,7 +297,6 @@ Point FrontierDetect::targetedFrontier(const std::vector<Frontier>& clusters, co
                     }
                 }
             }
-            f_index = i;
             max_score_yet = score;
             RCLCPP_INFO(this->get_logger(), "[targetedFrontier] Selected frontier with score: %f, mindist: %f", score, min_dist_yet);
         }
