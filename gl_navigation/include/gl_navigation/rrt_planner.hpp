@@ -50,10 +50,14 @@ class RRTPlanner : public rclcpp::Node {
         std::mt19937 generator;
 
         // * RRT State
+        int steer_distance; // cells => resolution * 10 = 0.5m; tunable
+        int goal_threshold; // cells => resolution * 3 = 0.15m; tunable
+        int MAX_ITERATIONS;
         std::vector<TNode> tree;
 
         // * ROS Vars
         OccGrid::SharedPtr map;
+        float map_res;
         PoseStamped goal_pose;
 
         std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -71,19 +75,19 @@ class RRTPlanner : public rclcpp::Node {
 
         // * Core functions
         bool makePlan();
-        bool findRoute(const Pose& start, const Pose& goal, Path& plan);
+        bool findRoute(const OccGrid::SharedPtr& mapdata, const Pose& start, const Pose& goal, Path& plan);
 
-        Cell sampleRandomCell();
+        Cell sampleRandomCell(const OccGrid::SharedPtr& mapdata);
         int findNearestNode(const Cell& cell);
         Cell steer(const Cell& from, const Cell& to);
-        bool isCollisionFree(const Cell& from, const Cell& to);
+        bool isCollisionFree(const OccGrid::SharedPtr& mapdata, const Cell& from, const Cell& to);
         bool isGoalReached(const Cell& cell, const Cell& c_goal);
-        void extractPath(Path& plan);
+        void extractPath(const OccGrid::SharedPtr& mapdata, Path& plan);
 
         // * Helper functions
         Pose getRobotPose();
         OccGrid::SharedPtr getMap();
-        Cell getCellFromPose(const Pose& pose);
+        Cell getCellFromPose(const OccGrid::SharedPtr& mapdata, const Pose& pose);
         void sendGoal(const Path& plan);
 
 };
