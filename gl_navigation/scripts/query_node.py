@@ -55,6 +55,10 @@ class QueryNode(Node):
                 best_score = score
                 best_label = label
                 best_pose = data['pose']
+            
+        if best_score < 0.5:
+            self.get_logger().warn(f'[query_node::processQuery] No good match found for query "{query}" (best was "{best_label}" with score {best_score:.4f})')
+            return None, None
         return best_label, best_pose
 
 
