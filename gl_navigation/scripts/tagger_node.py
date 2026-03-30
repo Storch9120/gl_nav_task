@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+
+"""
+ROS2 node for semantic tagging of locations using a mock VLM.
+
+Pipeline:
+    camera/pose -> VLM labeling -> embedding -> semantic map update
+
+Also publishes visualization markers for RViz.
+"""
+
 import json
 import threading
 from ament_index_python.packages import get_package_share_directory
@@ -15,6 +25,16 @@ from fake_VLM import mock_label_image, mock_embedding
 
 
 def dist2d(p1, p2):
+    """
+    Compute Euclidean distance between two 2D points.
+
+    Args:
+        p1 (tuple): (x, y)
+        p2 (tuple): (x, y)
+
+    Returns:
+        float: Distance
+    """
     return ((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)**0.5
 
 COLOR_MAP = {
@@ -25,8 +45,20 @@ COLOR_MAP = {
 }
 
 class TaggerNode(Node):
+    """
+    Node responsible for building a semantic map online.
+
+    Responsibilities:
+        - Detect semantic labels using a VLM
+        - Associate labels with robot poses
+        - Store embeddings
+        - Publish visualization markers
+    """
+
     def __init__(self):
+        """Initialize node, TF listener, and ROS interfaces."""
         super().__init__('tagger_node')
+
         self.tf_buffer = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
 
@@ -34,15 +66,25 @@ class TaggerNode(Node):
         self.semantic_map = {}
 
         self.cam_data_lck = threading.Lock()
+
         self.semantic_map_file = get_package_share_directory('gl_navigation') + '/config/semantic_map.json'
 
         self.semantic_map_pub = self.create_publisher(MarkerArray, 'semantic_markers', 10)
+
         self.camera_sub = self.create_subscription(
             Image, 'camera/image_raw', self.cameraCb, 10)
+
         self.tag_timer = self.create_timer(1.0, self.tagTick)
+
         self.get_logger().info("[TaggerNode] Ready")
 
     def getRobotPose(self):
+        """
+        Get robot pose in map frame using TF.
+
+        Returns:
+            tuple or None: (x, y) if available, else None
+        """
         try:
             t = self.tf_buffer.lookup_transform('map', 'base_link', rclpy.time.Time())
             return (t.transform.translation.x, t.transform.translation.y)
@@ -50,14 +92,32 @@ class TaggerNode(Node):
             return None
 
     def cameraCb(self, msg):
+        """
+        Store latest camera frame.
+
+        Args:
+            msg (Image): Incoming camera image
+        """
         with self.cam_data_lck:
             self.latest_view = msg
 
     def getLatestView(self):
+        """
+        Get latest camera frame safely.
+
+        Returns:
+            Image: Latest image message
+        """
         with self.cam_data_lck:
             return self.latest_view
 
     def publishMarkerArray(self, semantic_map):
+        """
+        Publish semantic markers for visualization in RViz.
+
+        Args:
+            semantic_map (dict): Label -> pose mapping
+        """
         marker_array = MarkerArray()
         marker_id = 0
 
@@ -116,6 +176,16 @@ class TaggerNode(Node):
         self.semantic_map_pub.publish(marker_array)
 
     def tagTick(self):
+        """
+        Periodic loop to detect and tag new semantic locations.
+
+        Workflow:
+            - Get robot pose
+            - Skip if robot hasn't moved enough
+            - Query VLM for label
+            - Store label, pose, and embedding
+            - Save semantic map
+        """
         pose = self.getRobotPose()
         if pose is None:
             return
@@ -135,20 +205,27 @@ class TaggerNode(Node):
         # label = mock_label_image(latest_view)
 
         label = mock_label_image(pose[0], pose[1])
+
         if label is None or label in self.semantic_map:
             return
 
         self.old_pose = pose
 
-        self.semantic_map[label] = {'pose': list(pose), 'embedding': mock_embedding(label)}
-        self.get_logger().info(f'[TaggerNode] Tagged location ({pose[0]:.2f}, {pose[1]:.2f}) as "{label}"')
+        self.semantic_map[label] = {
+            'pose': list(pose),
+            'embedding': mock_embedding(label)
+        }
 
+        self.get_logger().info(
+            f'[TaggerNode] Tagged location ({pose[0]:.2f}, {pose[1]:.2f}) as "{label}"'
+        )
 
         with open(self.semantic_map_file, 'w') as f:
             json.dump(self.semantic_map, f, indent=4)
 
 
 def main(args=None):
+    """Entry point for the node."""
     rclpy.init(args=args)
     rclpy.spin(TaggerNode())
     rclpy.shutdown()
