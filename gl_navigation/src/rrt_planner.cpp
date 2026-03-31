@@ -275,6 +275,10 @@ bool RRTPlanner::findRoute(const OccGrid::SharedPtr& mapdata, const Pose& start,
 
         // * Steer from nearest node towards random cell, creating a new node
         Cell new_cell = steer(tree[nearest_index].cell, rand_cell);
+        // * biasing growth towards goal 10% of the time
+        if (i % 10 == 0) {
+            new_cell = steer(tree[nearest_index].cell, c_goal);
+        }
 
         // * Check if the path from nearest node to new node is collision free
         if (isCollisionFree(mapdata, tree[nearest_index].cell, new_cell)) {
