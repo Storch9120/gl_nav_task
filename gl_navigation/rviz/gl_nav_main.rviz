@@ -82,22 +82,20 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        base_footprint:
-          base_link:
-            base_scan:
-              {}
-            caster_back_link:
-              {}
-            imu_link:
-              {}
-            wheel_left_link:
-              {}
-            wheel_right_link:
-              {}
         map:
-          {}
-        odom:
-          {}
+          odom:
+            base_footprint:
+              base_link:
+                base_scan:
+                  {}
+                caster_back_link:
+                  {}
+                imu_link:
+                  {}
+                wheel_left_link:
+                  {}
+                wheel_right_link:
+                  {}
       Update Interval: 0
       Value: true
     - Class: rviz_common/Group
@@ -239,7 +237,10 @@ Visualization Manager:
       Enabled: true
       Name: Semantic Tags
       Namespaces:
-        {}
+        blue_shelf: true
+        green_cubicle: true
+        red_bathroom: true
+        teal_meeting_room: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -250,7 +251,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: base_link
+    Fixed Frame: map
     Frame Rate: 30
   Name: root
   Tools:
@@ -292,26 +293,21 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz_default_plugins/Orbit
-      Distance: 4.837212562561035
+      Angle: 0.02500000223517418
+      Class: rviz_default_plugins/TopDownOrtho
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
-      Focal Point:
-        X: 0
-        Y: 0
-        Z: 0
-      Focal Shape Fixed Size: true
-      Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.4153980314731598
+      Scale: 82.416259765625
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz)
-      Yaw: 3.5753984451293945
+      Value: TopDownOrtho (rviz_default_plugins)
+      X: 1.6654109954833984
+      Y: 0.38148897886276245
     Saved: ~
 Window Geometry:
   Displays:
@@ -331,5 +327,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1200
-  X: 279
-  Y: 50
+  X: 0
+  Y: 46

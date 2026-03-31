@@ -55,7 +55,7 @@ controller_server:
     ...
 ```
 ### Demo Video:
-TODO
+[![Section 1 Demo](images/section1.png)](https://youtu.be/xT6XvBZ2qW4 "Frontier Exploration Demo")
 
 ### Launch commands:
 ```bash
@@ -78,7 +78,7 @@ ros2 run nav2_map_server map_saver_cli -f "blah_blah"
 In this section, robot is given few goals in the map to explore. The `tagger_node` tags these goals based on robot pose and creates a semantic map. This map consisting of label dicts with keys pose and embedded vector of the label text. This semantic map is read by `query_node` to handle text queries via service call `/send_query` and navigate to the queried label.
 
 ### Demo Video:
-TODO
+[![Section 2 Demo](images/section2.png)](https://youtu.be/V2cO7QWoWBo "Tag & Query Demo")
 
 ### Launch commands:
  
@@ -139,7 +139,8 @@ def get_embedding(text: str) -> list[float]:
 Occupancy grid publisher node processes an image and gives an occupancy grid type map but not sure about the point of publishing from it as well. The job is redundant as nav2 already has its own map_server; if we want to force usage of our publisher then we must send an deactivate() lifecycle event to map_server then start publishing to /map topic.
 
 ### Demo Video:
-TODO
+[![Section 3 Demo](images/section3.png)](https://youtu.be/CJX6S9A261M "RRT Planner Demo")
+
 
 ### Launch commands:
 ```bash
