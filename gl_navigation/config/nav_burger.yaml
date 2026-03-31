@@ -115,7 +115,7 @@ controller_server:
     goal_checker:
       stateful: true
       plugin: "nav2_controller::PositionGoalChecker" #SimpleGoalChecker
-      xy_goal_tolerance: 0.15
+      xy_goal_tolerance: 0.25
       # yaw_goal_tolerance: 0.25
     FollowPath:
       plugin: "dwb_core::DWBLocalPlanner"
@@ -124,7 +124,7 @@ controller_server:
       min_vel_y: 0.0
       max_vel_x: 0.3
       max_vel_y: 0.0
-      max_vel_theta: 0.5
+      max_vel_theta: 0.3
       min_speed_xy: 0.0
       max_speed_xy: 0.3
       min_speed_theta: 0.0
@@ -132,10 +132,10 @@ controller_server:
       # https://github.com/ROBOTIS-GIT/turtlebot3_simulations/issues/75
       acc_lim_x: 1.0
       acc_lim_y: 0.0
-      acc_lim_theta: 2.5
-      decel_lim_x: -1.5
+      acc_lim_theta: 3.2
+      decel_lim_x: -2.5
       decel_lim_y: 0.0
-      decel_lim_theta: -1.0
+      decel_lim_theta: -3.2
       vx_samples: 20
       vy_samples: 0
       vtheta_samples: 40
@@ -144,7 +144,7 @@ controller_server:
       angular_granularity: 0.025
       transform_tolerance: 0.2
       xy_goal_tolerance: 0.05
-      trans_stopped_velocity: 0.1
+      trans_stopped_velocity: 0.25
       short_circuit_trajectory_evaluation: true
       stateful: true
       critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]

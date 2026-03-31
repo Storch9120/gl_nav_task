@@ -19,7 +19,7 @@ def generate_launch_description():
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
 
-    nav_params_file = os.path.join(pkg_gl_base, 'config', 'nav_burger.yaml')
+    nav_params_file = os.path.join(pkg_gl_navigation, 'config', 'nav_burger.yaml')
     map_file = os.path.join(pkg_gl_navigation, 'config', 'small_room_map.yaml')
 
 
